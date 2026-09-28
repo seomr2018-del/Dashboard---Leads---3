@@ -1,0 +1,37 @@
+// מזהי Airtable – מקור הנתונים של הדאשבורד.
+// https://airtable.com/app0fHlPfEW2j2Fti/tbluBvD05Y5PrZy1z/viweSepoDyFWqMsNU
+export const AIRTABLE = {
+  baseId: 'app0fHlPfEW2j2Fti',
+  leads: {
+    tableId: 'tbluBvD05Y5PrZy1z',
+    viewId: 'viweSepoDyFWqMsNU',
+    fields: {
+      phone: 'fldatY6aabyro2QxH', // נייד (שדה ראשי)
+      name: 'fld3gkDsopHXERkPz', // שם
+      firstAttempt: 'fldyzfJPvnpzR9ODq', // ניסיון ראשון
+      secondAttempt: 'fldmOGLXf8saAj6ja', // ניסיון שני
+      lastUpdate: 'fldnFNa1q6Sutu3S7', // עדכון אחרון
+      status: 'fldUFuQsuxVUTJ6Ds', // סטטוס
+      notes: 'fldaNfYdxp6wdu2xq', // הערות / תשלום
+    },
+  },
+  templates: {
+    tableId: 'tbl8SI6TZBh5njWAJ',
+    fields: {
+      leadType: 'fldJDbgKJEtEONNHB', // סוג ליד
+      goal: 'fldKEOSfkncvsufWo', // מטרה
+      stageA: 'fldSAAj6R93XN9EEk', // הודעה שלב א'
+      stageB: 'fld2AhUnH7LzrX8XM', // הודעה שלב ב'
+      extra: 'fldHl1S33XJ3KXCPQ', // הודעה נוספת
+    },
+  },
+} as const;
+
+declare const __AIRTABLE_ENABLED__: boolean;
+
+/** true כשהוגדר AIRTABLE_TOKEN בקובץ .env – אחרת הדאשבורד עובד על נתוני דמה. */
+export const AIRTABLE_ENABLED: boolean =
+  typeof __AIRTABLE_ENABLED__ !== 'undefined' && __AIRTABLE_ENABLED__;
+
+/** לידים שלא עודכנו יותר מכך נחשבים "ממתינים למעקב". */
+export const STALE_AFTER_DAYS = 3;
