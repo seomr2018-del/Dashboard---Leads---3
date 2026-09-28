@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 // הטוקן של Airtable נקרא כאן, בצד השרת, ומוזרק לבקשה בפרוקסי.
 // הדפדפן פונה ל-/api/airtable/... ולעולם לא רואה את הטוקן.
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const token = env.AIRTABLE_TOKEN;
 
@@ -22,6 +22,8 @@ export default defineConfig(({ mode }) => {
   };
 
   return {
+    // נתיבים יחסיים בבנייה – כדי שהאתר יעבוד גם תחת תת-נתיב (GitHub Pages: /Dashboard---Leads---3/).
+    base: command === 'build' ? './' : '/',
     plugins: [react(), tailwindcss()],
     define: {
       __AIRTABLE_ENABLED__: JSON.stringify(Boolean(token)),

@@ -15,6 +15,7 @@
 | חיבור ל-Airtable | ✅ קריאה וכתיבה דרך פרוקסי; דורש `AIRTABLE_TOKEN` ב-`.env` |
 | בדיקות | ✅ 34 בדיקות יחידה (Vitest) |
 | CI | ✅ GitHub Actions – lint, typecheck, test, build |
+| GitHub Pages | ✅ פרסום אוטומטי של גרסת הדמה (Source: GitHub Actions) |
 | ענף עבודה | `claude/busy-volta-pun871` |
 | ריפו | `seomr2018-del/Dashboard---Leads---3` (ציבורי) |
 
@@ -117,6 +118,9 @@ Vite + React + TypeScript + Tailwind 4, RTL, מצב כהה, פרוקסי Airtabl
 ### ✅ שלב 6 – תיעוד ו-CI
 `SPEC.MD`, `Practice.md`, `README.md`, `.env.example`, `.github/workflows/ci.yml`.
 
+### ✅ שלב 7 – פרסום ב-GitHub Pages
+תוקן מסך ריק ב-Pages: הפרסום מהענף הגיש את קוד המקור במקום הבנייה, והנתיבים בבנייה היו אבסולוטיים. נוספו `base: './'` ו-workflow שבונה ומפרסם את `dist/`. נבדק מקומית: הבנייה נטענת תחת `/Dashboard---Leads---3/` בלי שגיאות.
+
 ### ⏳ השלבים הבאים
 ראו SPEC.MD סעיף 9: פריסה עם הזדהות, שדה "עודכן לאחרונה", שדה "אחראי", סכום תשלום, מקור ליד, רענון אוטומטי, תזכורות.
 
@@ -170,7 +174,18 @@ git commit -m "Add ..."
 git push -u origin claude/busy-volta-pun871
 ```
 
-### 5.6 פתרון בעיות
+### 5.6 פרסום ב-GitHub Pages (גרסת דמה ציבורית)
+הפרסום נעשה אוטומטית ע"י `.github/workflows/deploy-pages.yml` בכל דחיפה לענף העבודה או ל-`main`.
+
+1. ב-GitHub: **Settings → Pages → Build and deployment → Source: "GitHub Actions"**.
+   לא "Deploy from a branch" – במצב הזה GitHub מגיש את `index.html` של קוד המקור, שטוען את `/src/main.tsx` (TypeScript לא מקומפל), והתוצאה היא מסך ריק.
+2. דוחפים קומיט (או מריצים את ה-workflow ידנית בלשונית Actions).
+3. האתר: `https://seomr2018-del.github.io/Dashboard---Leads---3/`
+
+הבנייה משתמשת בנתיבים יחסיים (`base: './'` ב-`vite.config.ts`) כדי שהקבצים ייטענו תחת תת-הנתיב של הריפו.
+**האתר הציבורי מציג נתוני דמה בלבד.** אין בו פרוקסי ואין טוקן, ואסור להוסיף טוקן של Airtable ל-workflow – הוא ייחשף לכל העולם. לעבודה עם הנתונים האמיתיים – הרצה מקומית (סעיף 5.2).
+
+### 5.7 פתרון בעיות
 | בעיה | פתרון |
 |---|---|
 | "נתוני דמה" למרות שהוגדר טוקן | לוודא שהקובץ נקרא `.env` בתיקיית השורש, שהמשתנה `AIRTABLE_TOKEN` (בלי `VITE_`), ולהפעיל מחדש את `npm run dev` |
@@ -178,3 +193,4 @@ git push -u origin claude/busy-volta-pun871
 | "…נכשלה: 422" בשמירה | ערך סטטוס שלא קיים ב-Airtable – לבדוק את `STATUSES` ב-`lib/status.ts` |
 | סטטוס מוצג "ללא סטטוס" | נוספה אפשרות חדשה ב-Airtable – להוסיף אותה ל-`lib/status.ts` (סעיף 3.3) |
 | הדאשבורד לא עובד אחרי `npm run build` ופתיחת `dist/index.html` ישירות | הפרוקסי רץ רק עם `npm run dev` / `npm run preview` |
+| מסך ריק ב-GitHub Pages | Source צריך להיות "GitHub Actions" (סעיף 5.6); לבדוק שה-workflow "Deploy to GitHub Pages" הצליח בלשונית Actions |
