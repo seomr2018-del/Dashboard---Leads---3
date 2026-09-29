@@ -1,9 +1,11 @@
-import { AIRTABLE } from '../config';
+import { AIRTABLE, AIRTABLE_PROXY, getBrowserToken } from '../config';
 import type { Lead, LeadPatch, MessageTemplate } from '../types';
 import { statusFromAirtable, statusToAirtable } from './status';
 
-// כל הבקשות עוברות דרך הפרוקסי /api/airtable (vite.config.ts), שמוסיף את הטוקן בצד השרת.
-const API = '/api/airtable';
+// בפיתוח: דרך הפרוקסי /api/airtable (vite.config.ts), שמוסיף את הטוקן בצד השרת.
+// באתר הסטטי: ישירות ל-Airtable (תומך CORS) עם הטוקן שהוזן בדפדפן.
+const PROXY_API = '/api/airtable';
+const DIRECT_API = 'https://api.airtable.com/v0';
 const F = AIRTABLE.leads.fields;
 const T = AIRTABLE.templates.fields;
 
@@ -24,9 +26,11 @@ export class AirtableError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}/${AIRTABLE.baseId}/${path}`, {
+  const token = AIRTABLE_PROXY ? null : getBrowserToken();
+  const api = AIRTABLE_PROXY ? PROXY_API : DIRECT_API;
+  const res = await fetch(`${api}/${AIRTABLE.baseId}/${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init?.headers },
   });
   if (!res.ok) {
     let msg = `Airtable ${res.status}`;
@@ -84,47 +88,35 @@ export function patchToFields(patch: LeadPatch): Fields {
   return out;
 }
 
-// הקישור הישיר האמיתי שיצרנו מ-Google Sheets
-const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1st1rn0gZVpdcNLOR41CuBkqgMZhV-NB5YbD5Nxl8qzI/export?format=csv';
-
 export async function fetchLeads(): Promise<Lead[]> {
-    try {
-        const response = await fetch(SHEET_CSV_URL);
-        const csvText = await response.text();
-        
-        const rows = parseCSV(csvText);
-        
-        return rows.map((row, index) => ({
-            id: String(index + 1),
-            phone: row['נייד'] || '',
-            name: row['שם'] || '',
-            firstAttempt: row['ניסיון ראשון'] || '',
-            secondAttempt: row['ניסיון שני'] || '',
-            lastUpdate: row['עדכון אחרון'] || '',
-            status: row['סטטוס'] || '',
-            notes: '', 
-            createdTime: new Date().toISOString()
-        }));
-    } catch (error) {
-        console.error("שגיאה בטעינת הנתונים מ-Google Sheets:", error);
-        return [];
-    }
+  const records = await listAll(AIRTABLE.leads.tableId, { view: AIRTABLE.leads.viewId });
+  return records.map(recordToLead);
 }
 
-// פונקציית עזר לפירוק שורות ה-CSV ותמיכה בכותרות בעברית
-function parseCSV(csv: string) {
-    const lines = csv.split("\n");
-    const headers = lines[0].split(",").map(h => h.trim().replace(/^"(.*)"$/, '$1').replace(/^\ufeff/, ''));
-    const result = [];
+export async function updateLead(id: string, patch: LeadPatch): Promise<Lead> {
+  const r = await request<AirtableRecord>(`${AIRTABLE.leads.tableId}/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ fields: patchToFields(patch), returnFieldsByFieldId: true }),
+  });
+  return recordToLead(r);
+}
 
-    for (let i = 1; i < lines.length; i++) {
-        if (!lines[i].trim()) continue;
-        const currentline = lines[i].split(",");
-        const obj: Record<string, string> = {};
-        for (let j = 0; j < headers.length; j++) {
-            obj[headers[j]] = currentline[j] ? currentline[j].trim().replace(/^"(.*)"$/, '$1') : '';
-        }
-        result.push(obj);
-    }
-    return result;
+export async function createLead(patch: LeadPatch): Promise<Lead> {
+  const res = await request<{ records: AirtableRecord[] }>(AIRTABLE.leads.tableId, {
+    method: 'POST',
+    body: JSON.stringify({ records: [{ fields: patchToFields(patch) }], returnFieldsByFieldId: true }),
+  });
+  return recordToLead(res.records[0]);
+}
+
+export async function fetchTemplates(): Promise<MessageTemplate[]> {
+  const records = await listAll(AIRTABLE.templates.tableId);
+  return records.map((r) => ({
+    id: r.id,
+    leadType: str(r.fields[T.leadType]),
+    goal: str(r.fields[T.goal]),
+    stageA: str(r.fields[T.stageA]),
+    stageB: str(r.fields[T.stageB]),
+    extra: str(r.fields[T.extra]),
+  }));
 }

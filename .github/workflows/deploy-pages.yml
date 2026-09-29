@@ -2,7 +2,8 @@ name: Deploy to GitHub Pages
 
 # בונה את האפליקציה ומפרסם את dist/ ל-GitHub Pages.
 # ב-Settings → Pages צריך לבחור Source: "GitHub Actions" (לא "Deploy from a branch").
-# האתר הציבורי עובד על נתוני דמה בלבד: אין בו טוקן של Airtable, ואסור להוסיף אותו כאן.
+# אין בבנייה טוקן של Airtable, ואסור להוסיף אותו כאן (הקוד הבנוי ציבורי).
+# החיבור לנתונים האמיתיים נעשה בדפדפן: כפתור "חיבור ל-Airtable" ← הדבקת טוקן (נשמר ב-localStorage בלבד).
 
 on:
   push:

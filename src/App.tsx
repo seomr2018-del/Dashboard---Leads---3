@@ -1,4 +1,4 @@
-import { Database, Download, LayoutDashboard, List, MessageSquareText, Moon, Plus, RefreshCw, Sun, Columns3, X } from 'lucide-react';
+import { Database, Download, KeyRound, LogOut, LayoutDashboard, List, MessageSquareText, Moon, Plus, RefreshCw, Sun, Columns3, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { FilterBar } from './components/FilterBar';
 import { KanbanBoard } from './components/KanbanBoard';
@@ -8,7 +8,8 @@ import { NewLeadDialog } from './components/NewLeadDialog';
 import { Overview } from './components/Overview';
 import { TemplatesView } from './components/TemplatesView';
 import { Button } from './components/ui';
-import { AIRTABLE } from './config';
+import { AIRTABLE, AIRTABLE_PROXY, setBrowserToken } from './config';
+import { ConnectDialog } from './components/ConnectDialog';
 import { useLeads } from './hooks/useLeads';
 import { useTheme } from './hooks/useTheme';
 import { EMPTY_FILTERS, applyFilters, type Filters } from './lib/filters';
@@ -33,6 +34,12 @@ export default function App() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+
+  const disconnect = () => {
+    setBrowserToken(null);
+    window.location.reload();
+  };
 
   const metrics = useMemo(() => computeMetrics(data.leads), [data.leads]);
   const duplicates = useMemo(() => findDuplicates(data.leads), [data.leads]);
@@ -59,11 +66,28 @@ export default function App() {
                 מחובר ל-Airtable
               </a>
             ) : (
-              <span className="rounded bg-amber-100 px-1.5 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100">נתוני דמה – הגדירו AIRTABLE_TOKEN לחיבור</span>
+              <button
+                type="button"
+                onClick={() => setConnecting(true)}
+                className="rounded bg-amber-100 px-1.5 text-amber-900 hover:underline dark:bg-amber-900/50 dark:text-amber-100"
+              >
+                נתוני דמה – לחצו לחיבור ל-Airtable
+              </button>
             )}
             {data.syncedAt && <span>· עודכן {data.syncedAt.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}</span>}
           </p>
         </div>
+        {data.source === 'airtable' && !AIRTABLE_PROXY ? (
+          <Button variant="ghost" onClick={disconnect} aria-label="התנתקות מ-Airtable">
+            <LogOut size={16} /> התנתקות
+          </Button>
+        ) : (
+          data.source !== 'airtable' && (
+            <Button onClick={() => setConnecting(true)}>
+              <KeyRound size={16} /> חיבור ל-Airtable
+            </Button>
+          )
+        )}
         <Button onClick={data.reload} disabled={data.loading} aria-label="רענון נתונים">
           <RefreshCw size={16} className={data.loading ? 'animate-spin' : ''} /> רענון
         </Button>
@@ -124,6 +148,7 @@ export default function App() {
 
       {openLead && <LeadDrawer key={openLead.id} lead={openLead} templates={data.templates} onClose={() => setOpenId(null)} onSave={data.update} />}
       {creating && <NewLeadDialog onClose={() => setCreating(false)} onCreate={data.create} />}
+      {connecting && <ConnectDialog onClose={() => setConnecting(false)} onConnected={data.reload} />}
     </div>
   );
 }

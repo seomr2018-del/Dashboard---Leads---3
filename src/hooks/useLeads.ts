@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AIRTABLE_ENABLED } from '../config';
+import { airtableEnabled } from '../config';
 import { DEMO_TEMPLATES, demoLeads } from '../data/demo';
 import * as api from '../lib/airtable';
 import type { DataSource, Lead, LeadPatch, MessageTemplate } from '../types';
@@ -15,14 +15,14 @@ interface State {
 
 /**
  * מקור האמת לנתוני הדאשבורד.
- * עם AIRTABLE_TOKEN – קריאה וכתיבה ל-Airtable דרך הפרוקסי.
+ * עם AIRTABLE_TOKEN (פרוקסי) או טוקן שהוזן בדפדפן – קריאה וכתיבה ל-Airtable.
  * בלי טוקן, או אם הטעינה נכשלה – נתוני דמה, ושינויים נשמרים בזיכרון בלבד.
  */
 export function useLeads() {
   const [state, setState] = useState<State>({
     leads: [],
     templates: [],
-    source: AIRTABLE_ENABLED ? 'airtable' : 'demo',
+    source: airtableEnabled() ? 'airtable' : 'demo',
     loading: true,
     error: null,
     syncedAt: null,
@@ -30,7 +30,7 @@ export function useLeads() {
 
   const load = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: null }));
-    if (!AIRTABLE_ENABLED) {
+    if (!airtableEnabled()) {
       setState((s) => ({ ...s, leads: s.leads.length ? s.leads : demoLeads(), templates: DEMO_TEMPLATES, source: 'demo', loading: false, syncedAt: new Date() }));
       return;
     }
