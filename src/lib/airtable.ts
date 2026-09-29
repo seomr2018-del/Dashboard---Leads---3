@@ -84,27 +84,26 @@ export function patchToFields(patch: LeadPatch): Fields {
   return out;
 }
 
-// הקישור הישיר ל-CSV של Google Sheets שיצרנו קודם
-const SHEET_CSV_URL = 'הדבק_כאן_את_הקישור_של_ה-CSV_שלך';
+// הקישור הישיר האמיתי שיצרנו מ-Google Sheets
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1st1rn0gZVpdcNLOR41CuBkqgMZhV-NB5YbD5Nxl8qzI/export?format=csv';
 
 export async function fetchLeads(): Promise<Lead[]> {
     try {
         const response = await fetch(SHEET_CSV_URL);
         const csvText = await response.text();
         
-        // המרת נתוני ה-CSV למבנה הלידים שהדשבורד מצפה לקבל
         const rows = parseCSV(csvText);
         
         return rows.map((row, index) => ({
-            id: row.id || String(index + 1),
-            phone: row.phone || '',
-            name: row.name || '',
-            firstAttempt: row.firstAttempt || '',
-            secondAttempt: row.secondAttempt || '',
-            lastUpdate: row.lastUpdate || '',
-            status: row.status || '',
-            notes: row.notes || '',
-            createdTime: row.createdTime || new Date().toISOString()
+            id: String(index + 1),
+            phone: row['נייד'] || '',
+            name: row['שם'] || '',
+            firstAttempt: row['ניסיון ראשון'] || '',
+            secondAttempt: row['ניסיון שני'] || '',
+            lastUpdate: row['עדכון אחרון'] || '',
+            status: row['סטטוס'] || '',
+            notes: '', 
+            createdTime: new Date().toISOString()
         }));
     } catch (error) {
         console.error("שגיאה בטעינת הנתונים מ-Google Sheets:", error);
@@ -112,10 +111,10 @@ export async function fetchLeads(): Promise<Lead[]> {
     }
 }
 
-// פונקציית עזר לפירוק שורות ה-CSV
+// פונקציית עזר לפירוק שורות ה-CSV ותמיכה בכותרות בעברית
 function parseCSV(csv: string) {
     const lines = csv.split("\n");
-    const headers = lines[0].split(",").map(h => h.trim().replace(/^"(.*)"$/, '$1'));
+    const headers = lines[0].split(",").map(h => h.trim().replace(/^"(.*)"$/, '$1').replace(/^\ufeff/, ''));
     const result = [];
 
     for (let i = 1; i < lines.length; i++) {
@@ -128,31 +127,4 @@ function parseCSV(csv: string) {
         result.push(obj);
     }
     return result;
-}
-export async function updateLead(id: string, patch: LeadPatch): Promise<Lead> {
-  const r = await request<AirtableRecord>(`${AIRTABLE.leads.tableId}/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ fields: patchToFields(patch), returnFieldsByFieldId: true }),
-  });
-  return recordToLead(r);
-}
-
-export async function createLead(patch: LeadPatch): Promise<Lead> {
-  const res = await request<{ records: AirtableRecord[] }>(AIRTABLE.leads.tableId, {
-    method: 'POST',
-    body: JSON.stringify({ records: [{ fields: patchToFields(patch) }], returnFieldsByFieldId: true }),
-  });
-  return recordToLead(res.records[0]);
-}
-
-export async function fetchTemplates(): Promise<MessageTemplate[]> {
-  const records = await listAll(AIRTABLE.templates.tableId);
-  return records.map((r) => ({
-    id: r.id,
-    leadType: str(r.fields[T.leadType]),
-    goal: str(r.fields[T.goal]),
-    stageA: str(r.fields[T.stageA]),
-    stageB: str(r.fields[T.stageB]),
-    extra: str(r.fields[T.extra]),
-  }));
 }
