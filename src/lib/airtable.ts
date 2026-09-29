@@ -84,11 +84,51 @@ export function patchToFields(patch: LeadPatch): Fields {
   return out;
 }
 
+// הקישור הישיר ל-CSV של Google Sheets שיצרנו קודם
+const SHEET_CSV_URL = 'הדבק_כאן_את_הקישור_של_ה-CSV_שלך';
+
 export async function fetchLeads(): Promise<Lead[]> {
-  const records = await listAll(AIRTABLE.leads.tableId, { view: AIRTABLE.leads.viewId });
-  return records.map(recordToLead);
+    try {
+        const response = await fetch(SHEET_CSV_URL);
+        const csvText = await response.text();
+        
+        // המרת נתוני ה-CSV למבנה הלידים שהדשבורד מצפה לקבל
+        const rows = parseCSV(csvText);
+        
+        return rows.map((row, index) => ({
+            id: row.id || String(index + 1),
+            phone: row.phone || '',
+            name: row.name || '',
+            firstAttempt: row.firstAttempt || '',
+            secondAttempt: row.secondAttempt || '',
+            lastUpdate: row.lastUpdate || '',
+            status: row.status || '',
+            notes: row.notes || '',
+            createdTime: row.createdTime || new Date().toISOString()
+        }));
+    } catch (error) {
+        console.error("שגיאה בטעינת הנתונים מ-Google Sheets:", error);
+        return [];
+    }
 }
 
+// פונקציית עזר לפירוק שורות ה-CSV
+function parseCSV(csv: string) {
+    const lines = csv.split("\n");
+    const headers = lines[0].split(",").map(h => h.trim().replace(/^"(.*)"$/, '$1'));
+    const result = [];
+
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const currentline = lines[i].split(",");
+        const obj: Record<string, string> = {};
+        for (let j = 0; j < headers.length; j++) {
+            obj[headers[j]] = currentline[j] ? currentline[j].trim().replace(/^"(.*)"$/, '$1') : '';
+        }
+        result.push(obj);
+    }
+    return result;
+}
 export async function updateLead(id: string, patch: LeadPatch): Promise<Lead> {
   const r = await request<AirtableRecord>(`${AIRTABLE.leads.tableId}/${id}`, {
     method: 'PATCH',
